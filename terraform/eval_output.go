@@ -117,3 +117,34 @@ func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 
 	return nil, nil
 }
+
+// EvalWriteOutput is an EvalNode implementation that writes the output
+// for the given name to the current state.
+type EvalRemoveOutput struct {
+	Name  string
+	Value *config.RawConfig
+}
+
+// TODO: test
+func (n *EvalRemoveOutput) Eval(ctx EvalContext) (interface{}, error) {
+	state, lock := ctx.State()
+	if state == nil {
+		return nil, fmt.Errorf("cannot write state to nil state")
+	}
+
+	// Get a write lock so we can access this instance
+	lock.Lock()
+	defer lock.Unlock()
+
+	// Look for the module state. If we don't have one, create it.
+	mod := state.ModuleByPath(ctx.Path())
+	if mod == nil {
+		mod = state.AddModule(ctx.Path())
+	}
+
+	mod.Outputs[n.Name] = &OutputState{
+		Type:  "string",
+		Value: config.UnknownVariableValue,
+	}
+	return nil, nil
+}
